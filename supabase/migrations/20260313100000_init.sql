@@ -31,11 +31,13 @@ create table if not exists public.answers (
   id uuid primary key default gen_random_uuid(),
   question_id uuid references public.questions(id) not null,
   participant_name text not null,
+  phone text,
   device_token text not null,
   chosen_option text not null,
   is_correct boolean not null,
   submitted_at timestamptz default now(),
-  unique (question_id, device_token)
+  unique (question_id, device_token),
+  constraint answers_phone_format check (phone is null or phone ~ '^[6-9][0-9]{9}$')
 );
 
 create table if not exists public.winners (
@@ -101,6 +103,17 @@ begin
   new.participant_name := trim(new.participant_name);
   if new.participant_name = '' then
     raise exception 'Name is required';
+  end if;
+
+  new.phone := regexp_replace(coalesce(new.phone, ''), '\D', '', 'g');
+  if length(new.phone) = 12 and left(new.phone, 2) = '91' then
+    new.phone := right(new.phone, 10);
+  end if;
+  if length(new.phone) = 11 and left(new.phone, 1) = '0' then
+    new.phone := right(new.phone, 10);
+  end if;
+  if new.phone = '' or new.phone !~ '^[6-9][0-9]{9}$' then
+    raise exception 'A valid 10-digit mobile number is required';
   end if;
 
   new.is_correct := (new.chosen_option = q.correct_option);
@@ -245,6 +258,7 @@ grant select on public.winners to anon, authenticated;
 grant insert (
   question_id,
   participant_name,
+  phone,
   device_token,
   chosen_option,
   is_correct

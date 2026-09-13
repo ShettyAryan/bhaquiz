@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { asQuestion, type AdminQuestion, type AdminSession } from "@/lib/types";
 
@@ -45,7 +46,7 @@ export async function GET() {
     const { data: winners, error: winnersError } = sessionIds.length
       ? await admin
           .from("winners")
-          .select("id, session_id, answer_id, picked_at, answers(participant_name, question_id)")
+          .select("id, session_id, answer_id, picked_at, answers(participant_name, phone, question_id)")
           .in("session_id", sessionIds)
           .order("picked_at", { ascending: false })
       : { data: [], error: null };
@@ -76,8 +77,8 @@ export async function GET() {
     const winnersBySession = new Map<string, AdminSession["winners"]>();
     for (const row of winners ?? []) {
       const joined = row.answers as
-        | { participant_name: string; question_id: string }
-        | { participant_name: string; question_id: string }[]
+        | { participant_name: string; phone: string | null; question_id: string }
+        | { participant_name: string; phone: string | null; question_id: string }[]
         | null;
       const answer = Array.isArray(joined) ? joined[0] : joined;
       const list = winnersBySession.get(row.session_id) ?? [];
@@ -85,6 +86,7 @@ export async function GET() {
         id: row.id,
         picked_at: row.picked_at,
         participant_name: answer?.participant_name ?? "Unknown",
+        phone_last4: phoneLast4(answer?.phone),
         question_id: answer?.question_id ?? "",
       });
       winnersBySession.set(row.session_id, list);

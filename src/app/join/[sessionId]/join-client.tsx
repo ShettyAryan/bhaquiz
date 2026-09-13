@@ -7,13 +7,17 @@ import { readErrorMessage } from "@/lib/api";
 import {
   getDeviceToken,
   getSavedName,
+  getSavedPhone,
   getSubmittedQuestionKey,
   saveName,
+  savePhone,
 } from "@/lib/device";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 
 export function JoinClient({ sessionId }: { sessionId: string }) {
   const { state, error, loading, reload } = useLiveSession(sessionId);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [choice, setChoice] = useState("");
   const [deviceToken, setDeviceToken] = useState("");
   const [submittedId, setSubmittedId] = useState<string | null>(null);
@@ -23,6 +27,7 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
   useEffect(() => {
     setDeviceToken(getDeviceToken());
     setName(getSavedName());
+    setPhone(getSavedPhone());
     setSubmittedId(sessionStorage.getItem(getSubmittedQuestionKey(sessionId)));
   }, [sessionId]);
 
@@ -45,6 +50,7 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
         body: JSON.stringify({
           question_id: openQuestion.id,
           participant_name: name.trim(),
+          phone: normalizePhone(phone),
           device_token: deviceToken,
           chosen_option: choice,
         }),
@@ -59,6 +65,7 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
           sessionStorage.setItem(getSubmittedQuestionKey(sessionId), openQuestion.id);
           setSubmittedId(openQuestion.id);
           saveName(name.trim());
+          savePhone(normalizePhone(phone));
           return;
         }
         throw new Error(message);
@@ -67,6 +74,7 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
       sessionStorage.setItem(getSubmittedQuestionKey(sessionId), openQuestion.id);
       setSubmittedId(openQuestion.id);
       saveName(name.trim());
+      savePhone(normalizePhone(phone));
     } catch (caught) {
       setSubmitError(
         caught instanceof Error
@@ -112,18 +120,33 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
             </p>
           </div>
 
-          <label className="block shrink-0">
-            <span className="text-xs font-medium">Your name</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={80}
-              required
-              autoComplete="name"
-              placeholder="Type the name we should announce"
-              className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-brand"
-            />
-          </label>
+          <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_8.75rem] gap-2">
+            <label className="block">
+              <span className="text-xs font-medium">Your name</span>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={80}
+                required
+                autoComplete="name"
+                placeholder="Name we should announce"
+                className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-brand"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium">Mobile number</span>
+              <input
+                value={phone}
+                onChange={(event) => setPhone(normalizePhone(event.target.value).slice(0, 10))}
+                inputMode="numeric"
+                autoComplete="tel"
+                required
+                maxLength={10}
+                placeholder="10-digit mobile"
+                className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-brand"
+              />
+            </label>
+          </div>
 
           <fieldset className="flex min-h-0 flex-1 flex-col gap-2">
             <legend className="mb-1 text-xs font-medium">Your answer</legend>
@@ -157,7 +180,7 @@ export function JoinClient({ sessionId }: { sessionId: string }) {
 
           <button
             type="submit"
-            disabled={pending || !choice || !name.trim()}
+            disabled={pending || !choice || !name.trim() || !isValidPhone(phone)}
             className="h-12 shrink-0 rounded-xl bg-brand text-base font-semibold text-white disabled:opacity-50"
           >
             {pending ? "Submitting…" : "Submit answer"}

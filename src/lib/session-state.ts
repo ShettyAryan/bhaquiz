@@ -1,3 +1,4 @@
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
   asQuestion,
@@ -7,7 +8,10 @@ import {
 
 type WinnerJoin = {
   picked_at: string;
-  answers: { participant_name: string } | { participant_name: string }[] | null;
+  answers:
+    | { participant_name: string; phone: string | null }
+    | { participant_name: string; phone: string | null }[]
+    | null;
 };
 
 export async function getPublicSessionState(
@@ -53,7 +57,7 @@ export async function getPublicSessionState(
 
   const { data: winnerRow, error: winnerError } = await admin
     .from("winners")
-    .select("picked_at, answers(participant_name)")
+    .select("picked_at, answers(participant_name, phone)")
     .eq("session_id", sessionId)
     .order("picked_at", { ascending: false })
     .limit(1)
@@ -75,7 +79,11 @@ export async function getPublicSessionState(
     question: latestQuestion ? toPublicQuestion(latestQuestion) : null,
     answerCount,
     winner: answerJoin?.participant_name
-      ? { name: answerJoin.participant_name, picked_at: joined!.picked_at }
+      ? {
+          name: answerJoin.participant_name,
+          phone_last4: phoneLast4(answerJoin.phone),
+          picked_at: joined!.picked_at,
+        }
       : null,
   };
 }

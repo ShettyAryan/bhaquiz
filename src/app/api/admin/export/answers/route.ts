@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
 import { toCsv } from "@/lib/csv";
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     const { data: answers, error: answersError } = questionIds.length
       ? await admin
           .from("answers")
-          .select("question_id, participant_name, chosen_option, is_correct, submitted_at")
+          .select("question_id, participant_name, phone, chosen_option, is_correct, submitted_at")
           .in("question_id", questionIds)
           .order("submitted_at", { ascending: true })
       : { data: [], error: null };
@@ -50,6 +51,8 @@ export async function GET(request: Request) {
         "session_title",
         "question_text",
         "participant_name",
+        "phone",
+        "phone_last4",
         "chosen_option",
         "is_correct",
         "submitted_at",
@@ -59,6 +62,8 @@ export async function GET(request: Request) {
         session.title,
         questionText.get(answer.question_id) ?? "",
         answer.participant_name,
+        answer.phone ?? "",
+        phoneLast4(answer.phone),
         answer.chosen_option,
         answer.is_correct,
         answer.submitted_at,

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
 import { toCsv } from "@/lib/csv";
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function GET() {
     const { data: answers, error: answersError } = answerIds.length
       ? await admin
           .from("answers")
-          .select("id, participant_name, question_id")
+          .select("id, participant_name, phone, question_id")
           .in("id", answerIds)
       : { data: [], error: null };
     if (answersError) throw answersError;
@@ -49,7 +50,15 @@ export async function GET() {
     const questionMap = new Map((questions ?? []).map((row) => [row.id, row]));
 
     const csv = toCsv(
-      ["session_number", "session_title", "question_text", "winner_name", "picked_at"],
+      [
+        "session_number",
+        "session_title",
+        "question_text",
+        "winner_name",
+        "phone",
+        "phone_last4",
+        "picked_at",
+      ],
       (winners ?? []).map((row) => {
         const session = sessionMap.get(row.session_id);
         const answer = answerMap.get(row.answer_id);
@@ -59,6 +68,8 @@ export async function GET() {
           session?.title ?? "",
           question?.question_text ?? "",
           answer?.participant_name ?? "",
+          answer?.phone ?? "",
+          phoneLast4(answer?.phone),
           row.picked_at,
         ];
       }),

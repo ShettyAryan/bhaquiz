@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { CorrectAnswerRow } from "@/lib/types";
 
@@ -18,7 +19,7 @@ export async function GET(
     const admin = getSupabaseAdmin();
     const { data, error } = await admin
       .from("answers")
-      .select("id, participant_name, submitted_at, is_correct")
+      .select("id, participant_name, phone, submitted_at, is_correct")
       .eq("question_id", id)
       .order("submitted_at", { ascending: true });
 
@@ -30,6 +31,7 @@ export async function GET(
       .map((row) => ({
         id: row.id,
         participant_name: row.participant_name,
+        phone_last4: phoneLast4(row.phone),
         submitted_at: row.submitted_at,
       }));
 

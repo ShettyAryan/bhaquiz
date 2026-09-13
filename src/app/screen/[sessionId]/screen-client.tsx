@@ -77,7 +77,7 @@ export function ScreenClient({ sessionId }: { sessionId: string }) {
       ) : null}
 
       {showWinner && state?.winner ? (
-        <WinnerReveal name={state.winner.name} />
+        <WinnerReveal name={state.winner.name} phoneLast4={state.winner.phone_last4} />
       ) : question && isOpen ? (
         <OpenQuestion
           text={question.question_text}
@@ -187,7 +187,7 @@ function WaitingScreen() {
   );
 }
 
-function WinnerReveal({ name }: { name: string }) {
+function WinnerReveal({ name, phoneLast4 }: { name: string; phoneLast4: string }) {
   return (
     <section className="relative m-auto px-6 text-center">
       <span className="sparkle absolute top-0 left-8 text-3xl text-brand">✦</span>
@@ -200,6 +200,11 @@ function WinnerReveal({ name }: { name: string }) {
       <h3 className="animate-winner font-display mt-3 text-[clamp(2.5rem,10vh,6rem)] leading-none text-slate-900">
         {name}
       </h3>
+      {phoneLast4 ? (
+        <p className="mt-3 text-lg font-semibold text-slate-600 sm:text-xl">
+          Mobile ending {phoneLast4}
+        </p>
+      ) : null}
     </section>
   );
 }

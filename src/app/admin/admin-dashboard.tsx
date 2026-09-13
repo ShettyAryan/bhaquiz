@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RetryBanner } from "@/components/retry-banner";
 import { readErrorMessage } from "@/lib/api";
+import { displayNameWithLast4 } from "@/lib/phone";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { AdminQuestion, AdminSession, CorrectAnswerRow } from "@/lib/types";
 
@@ -283,7 +284,8 @@ function SessionCard({
           <ul className="mt-2 space-y-1 text-sm text-slate-600">
             {session.winners.map((winner) => (
               <li key={winner.id}>
-                {winner.participant_name} · {new Date(winner.picked_at).toLocaleString()}
+                {displayNameWithLast4(winner.participant_name, winner.phone_last4)} ·{" "}
+                {new Date(winner.picked_at).toLocaleString()}
               </li>
             ))}
           </ul>
@@ -392,7 +394,10 @@ function QuestionPanel({
   }
 
   async function pickWinner() {
-    const names = results?.correct.map((row) => row.participant_name) ?? [];
+    const names =
+      results?.correct.map((row) =>
+        displayNameWithLast4(row.participant_name, row.phone_last4),
+      ) ?? [];
     if (!names.length) {
       setError("No correct answers to draw from.");
       return;
@@ -415,8 +420,13 @@ function QuestionPanel({
       if (!response.ok) {
         throw new Error(await readErrorMessage(response, "Could not pick a winner."));
       }
-      const payload = (await response.json()) as { winner: { name: string } };
-      winnerName = payload.winner.name;
+      const payload = (await response.json()) as {
+        winner: { name: string; phone_last4?: string };
+      };
+      winnerName = displayNameWithLast4(
+        payload.winner.name,
+        payload.winner.phone_last4,
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not pick a winner.");
       setDrawing(false);
@@ -546,7 +556,7 @@ function QuestionPanel({
               <ul className="mt-2 space-y-1 text-sm">
                 {results.correct.map((row) => (
                   <li key={row.id}>
-                    {row.participant_name}
+                    {displayNameWithLast4(row.participant_name, row.phone_last4)}
                     <span className="ml-2 text-slate-500">
                       {new Date(row.submitted_at).toLocaleTimeString()}
                     </span>
@@ -577,7 +587,13 @@ function QuestionPanel({
               </p>
             ) : latestWinner ? (
               <p className="text-sm text-slate-600">
-                Current winner: <strong>{latestWinner.participant_name}</strong>
+                Current winner:{" "}
+                <strong>
+                  {displayNameWithLast4(
+                    latestWinner.participant_name,
+                    latestWinner.phone_last4,
+                  )}
+                </strong>
               </p>
             ) : null}
           </div>

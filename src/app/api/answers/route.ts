@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUniqueViolation, jsonError, parseJson } from "@/lib/api";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { parseOptions } from "@/lib/types";
 
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   let body: {
     question_id?: string;
     participant_name?: string;
+    phone?: string;
     device_token?: string;
     chosen_option?: string;
   } | null = null;
@@ -24,6 +26,7 @@ export async function POST(request: Request) {
 
   const questionId = body?.question_id?.trim() ?? "";
   const name = body?.participant_name?.trim() ?? "";
+  const phone = normalizePhone(body?.phone ?? "");
   const deviceToken = body?.device_token?.trim() ?? "";
   const chosenOption = body?.chosen_option?.trim() ?? "";
 
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
   }
   if (name.length < 1 || name.length > 80) {
     return jsonError("Enter your name (up to 80 characters).");
+  }
+  if (!isValidPhone(phone)) {
+    return jsonError("Enter a valid 10-digit mobile number.");
   }
   if (!deviceToken || deviceToken.length > 80) {
     return jsonError("Could not identify this device. Refresh and try again.");
@@ -62,6 +68,7 @@ export async function POST(request: Request) {
     const { error: insertError } = await admin.from("answers").insert({
       question_id: questionId,
       participant_name: name,
+      phone,
       device_token: deviceToken,
       chosen_option: chosenOption,
       is_correct: chosenOption === question.correct_option,

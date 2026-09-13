@@ -23,6 +23,7 @@ export type Answer = {
   id: string;
   question_id: string;
   participant_name: string;
+  phone: string | null;
   device_token: string;
   chosen_option: string;
   is_correct: boolean;
@@ -40,7 +41,7 @@ export type PublicSessionState = {
   session: Pick<Session, "id" | "session_number" | "title">;
   question: PublicQuestion | null;
   answerCount: number;
-  winner: { name: string; picked_at: string } | null;
+  winner: { name: string; phone_last4: string; picked_at: string } | null;
 };
 
 export type AdminQuestion = Question & {
@@ -54,6 +55,7 @@ export type AdminSession = Session & {
     id: string;
     picked_at: string;
     participant_name: string;
+    phone_last4: string;
     question_id: string;
   }>;
 };
@@ -61,6 +63,7 @@ export type AdminSession = Session & {
 export type CorrectAnswerRow = {
   id: string;
   participant_name: string;
+  phone_last4: string;
   submitted_at: string;
 };
 

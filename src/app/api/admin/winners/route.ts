@@ -2,6 +2,7 @@ import { randomInt } from "crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { jsonError, parseJson } from "@/lib/api";
+import { phoneLast4 } from "@/lib/phone";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
     const { data: correct, error: correctError } = await admin
       .from("answers")
-      .select("id, participant_name")
+      .select("id, participant_name, phone")
       .eq("question_id", questionId)
       .eq("is_correct", true);
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
       winner: {
         id: winner.id,
         name: picked.participant_name,
+        phone_last4: phoneLast4(picked.phone),
         answer_id: picked.id,
         picked_at: winner.picked_at,
       },
