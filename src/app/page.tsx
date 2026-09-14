@@ -34,13 +34,13 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-8">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-sky-100">
-        <p className="text-base leading-7 text-slate-600">
+    <main className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-3">
+      <div className="w-full max-w-md rounded-3xl bg-white p-5 text-center shadow-sm ring-1 ring-sky-100">
+        <p className="text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
           Scan the QR on the projector, or enter the session code shown on screen.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4 text-left">
+        <form onSubmit={onSubmit} className="mt-5 space-y-3 text-left sm:mt-6 sm:space-y-4">
           <label className="block text-sm font-medium" htmlFor="code">
             Session code
           </label>

@@ -72,7 +72,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl overflow-y-auto px-5 py-8">
+    <main className="mx-auto w-full max-w-6xl px-5 py-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold tracking-[0.18em] text-brand uppercase">

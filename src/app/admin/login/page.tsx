@@ -32,16 +32,16 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
+    <main className="flex min-h-0 flex-1 items-center justify-center px-4 py-3">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm"
+        className="w-full max-w-md rounded-3xl bg-white p-5 shadow-sm sm:p-7"
       >
         <p className="text-xs font-semibold tracking-[0.18em] text-brand uppercase">
           Organizer
         </p>
-        <h2 className="font-display mt-2 text-4xl text-slate-900">Admin login</h2>
-        <label className="mt-8 block text-sm font-medium" htmlFor="password">
+        <h2 className="font-display mt-1 text-3xl text-slate-900 sm:text-4xl">Admin login</h2>
+        <label className="mt-5 block text-sm font-medium" htmlFor="password">
           Password
         </label>
         <input
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={pending}
-          className="mt-6 h-12 w-full rounded-xl bg-brand font-semibold text-white disabled:opacity-60"
+          className="mt-5 h-12 w-full rounded-xl bg-brand font-semibold text-white disabled:opacity-60"
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>

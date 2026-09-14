@@ -29,9 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-dvh overflow-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-background text-foreground">
+      <body className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background text-foreground">
         <EventHeader />
         <div className="app-shell flex min-h-0 flex-1 flex-col">{children}</div>
         <EventFooter />
