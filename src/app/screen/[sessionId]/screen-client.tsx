@@ -5,7 +5,9 @@ import { RetryBanner } from "@/components/retry-banner";
 import { useLiveSession } from "@/hooks/use-live-session";
 
 export function ScreenClient({ sessionId }: { sessionId: string }) {
-  const { state, error, loading, reload } = useLiveSession(sessionId);
+  const { state, error, loading, reload } = useLiveSession(sessionId, {
+    subscribeToAnswerCounts: true,
+  });
   const [qr, setQr] = useState<string>("");
   const [joinUrl, setJoinUrl] = useState("");
 

@@ -5,7 +5,11 @@ import { readErrorMessage } from "@/lib/api";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { PublicSessionState } from "@/lib/types";
 
-export function useLiveSession(sessionId: string) {
+export function useLiveSession(
+  sessionId: string,
+  options?: { subscribeToAnswerCounts?: boolean },
+) {
+  const subscribeToAnswerCounts = options?.subscribeToAnswerCounts ?? false;
   const [state, setState] = useState<PublicSessionState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +93,7 @@ export function useLiveSession(sessionId: string) {
 
   useEffect(() => {
     const questionId = state?.question?.id;
-    if (!questionId || !isSupabaseConfigured()) return;
+    if (!subscribeToAnswerCounts || !questionId || !isSupabaseConfigured()) return;
 
     try {
       const supabase = getSupabaseBrowserClient();
@@ -113,11 +117,7 @@ export function useLiveSession(sessionId: string) {
             );
           },
         )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            void load();
-          }
-        });
+        .subscribe();
 
       return () => {
         void supabase.removeChannel(answersChannel);
@@ -125,7 +125,7 @@ export function useLiveSession(sessionId: string) {
     } catch {
       // Count will stay at the last fetched value.
     }
-  }, [load, state?.question?.id]);
+  }, [subscribeToAnswerCounts, state?.question?.id]);
 
   return { state, error, loading, reload: load };
 }
