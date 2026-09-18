@@ -324,8 +324,11 @@ function QuestionPanel({
     correct: CorrectAnswerRow[];
   } | null>(null);
   const [drawing, setDrawing] = useState(false);
-  const [shuffleName, setShuffleName] = useState("");
-  const [revealedWinner, setRevealedWinner] = useState<string | null>(null);
+  const [shuffleNames, setShuffleNames] = useState<string[]>([]);
+  const [pendingWinners, setPendingWinners] = useState<
+    Array<{ answer_id: string; name: string; phone_last4: string }>
+  >([]);
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     setLiveCount(question.answerCount);
@@ -377,7 +380,8 @@ function QuestionPanel({
       void loadResults();
     } else {
       setResults(null);
-      setRevealedWinner(null);
+      setPendingWinners([]);
+      setShuffleNames([]);
     }
   }, [loadResults, question.is_open]);
 
@@ -393,7 +397,27 @@ function QuestionPanel({
     }
   }
 
-  async function pickWinner() {
+  async function drawFromServer(count: number, excludeAnswerIds: string[] = []) {
+    const response = await fetch("/api/admin/winners/draw", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: session.id,
+        question_id: question.id,
+        count,
+        exclude_answer_ids: excludeAnswerIds,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, "Could not draw winners."));
+    }
+    const payload = (await response.json()) as {
+      winners: Array<{ answer_id: string; name: string; phone_last4: string }>;
+    };
+    return payload.winners;
+  }
+
+  async function drawWinners() {
     const names =
       results?.correct.map((row) =>
         displayNameWithLast4(row.participant_name, row.phone_last4),
@@ -404,31 +428,13 @@ function QuestionPanel({
     }
 
     setDrawing(true);
-    setRevealedWinner(null);
     setError(null);
 
-    let winnerName = "";
+    let drawn: Array<{ answer_id: string; name: string; phone_last4: string }> = [];
     try {
-      const response = await fetch("/api/admin/winners", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: session.id,
-          question_id: question.id,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Could not pick a winner."));
-      }
-      const payload = (await response.json()) as {
-        winner: { name: string; phone_last4?: string };
-      };
-      winnerName = displayNameWithLast4(
-        payload.winner.name,
-        payload.winner.phone_last4,
-      );
+      drawn = await drawFromServer(Math.min(2, names.length));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not pick a winner.");
+      setError(caught instanceof Error ? caught.message : "Could not draw winners.");
       setDrawing(false);
       return;
     }
@@ -436,19 +442,85 @@ function QuestionPanel({
     const started = Date.now();
     const duration = 3200;
     const tick = window.setInterval(() => {
-      setShuffleName(names[Math.floor(Math.random() * names.length)] ?? "");
+      setShuffleNames(
+        Array.from(
+          { length: drawn.length },
+          () => names[Math.floor(Math.random() * names.length)] ?? "",
+        ),
+      );
       if (Date.now() - started > duration) {
         window.clearInterval(tick);
-        setShuffleName(winnerName);
-        setRevealedWinner(winnerName);
+        setShuffleNames(
+          drawn.map((row) => displayNameWithLast4(row.name, row.phone_last4)),
+        );
+        setPendingWinners(drawn);
         setDrawing(false);
-        void onChanged();
       }
     }, 80);
   }
 
-  const latestWinner = useMemo(
-    () => session.winners.find((winner) => winner.question_id === question.id),
+  async function redrawSlot(index: number) {
+    const exclude = pendingWinners
+      .filter((_, slot) => slot !== index)
+      .map((row) => row.answer_id);
+    try {
+      const [next] = await drawFromServer(1, exclude);
+      if (!next) return;
+      setPendingWinners((current) =>
+        current.map((row, slot) => (slot === index ? next : row)),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not re-draw that winner.",
+      );
+    }
+  }
+
+  function changeSlot(index: number, answerId: string) {
+    const row = results?.correct.find((item) => item.id === answerId);
+    if (!row) return;
+    setPendingWinners((current) =>
+      current.map((item, slot) =>
+        slot === index
+          ? {
+              answer_id: row.id,
+              name: row.participant_name,
+              phone_last4: row.phone_last4,
+            }
+          : item,
+      ),
+    );
+  }
+
+  async function postWinners() {
+    if (!pendingWinners.length) return;
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/winners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: session.id,
+          question_id: question.id,
+          answer_ids: pendingWinners.map((row) => row.answer_id),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, "Could not post winners."));
+      }
+      setPendingWinners([]);
+      await onChanged();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not post winners.");
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  const postedWinners = useMemo(
+    () =>
+      session.winners.filter((winner) => winner.question_id === question.id).slice(0, 2),
     [question.id, session.winners],
   );
 
@@ -568,32 +640,107 @@ function QuestionPanel({
             <p className="mt-2 text-sm text-slate-500">No correct answers yet.</p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void pickWinner()}
-              disabled={drawing || results.correct.length === 0}
-              className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {drawing
-                ? "Drawing…"
-                : latestWinner
-                  ? "Re-roll winner"
-                  : "Pick random winner"}
-            </button>
-            {drawing || revealedWinner ? (
-              <p className={`text-xl font-semibold ${drawing ? "animate-shuffle" : "animate-winner"}`}>
-                {drawing ? shuffleName || "…" : revealedWinner}
-              </p>
-            ) : latestWinner ? (
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void drawWinners()}
+                disabled={drawing || posting || results.correct.length === 0}
+                className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {drawing
+                  ? "Drawing…"
+                  : pendingWinners.length || postedWinners.length
+                    ? "Re-draw both"
+                    : results.correct.length === 1
+                      ? "Draw 1 winner"
+                      : "Draw 2 winners"}
+              </button>
+              {pendingWinners.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => void postWinners()}
+                  disabled={drawing || posting}
+                  className="rounded-xl bg-brand-strong px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {posting ? "Posting…" : "Post to screen"}
+                </button>
+              ) : null}
+            </div>
+
+            {drawing ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(shuffleNames.length ? shuffleNames : ["…"]).map((name, index) => (
+                  <p
+                    key={`shuffle-${index}`}
+                    className="animate-shuffle rounded-xl bg-slate-50 px-3 py-2 text-lg font-semibold"
+                  >
+                    {name || "…"}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+
+            {!drawing && pendingWinners.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {pendingWinners.map((winner, index) => (
+                  <div
+                    key={`${winner.answer_id}-${index}`}
+                    className="rounded-xl border border-sky-100 bg-white p-3"
+                  >
+                    <p className="text-xs font-semibold tracking-[0.14em] text-brand uppercase">
+                      Winner {index + 1}
+                    </p>
+                    <select
+                      value={winner.answer_id}
+                      onChange={(event) => changeSlot(index, event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm"
+                    >
+                      {results.correct.map((row) => (
+                        <option
+                          key={row.id}
+                          value={row.id}
+                          disabled={pendingWinners.some(
+                            (other, slot) =>
+                              slot !== index && other.answer_id === row.id,
+                          )}
+                        >
+                          {displayNameWithLast4(row.participant_name, row.phone_last4)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => void redrawSlot(index)}
+                      disabled={drawing || posting || results.correct.length < 2}
+                      className="mt-2 text-sm font-semibold text-brand disabled:opacity-50"
+                    >
+                      Re-draw this one
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {!drawing && pendingWinners.length === 0 && postedWinners.length > 0 ? (
               <p className="text-sm text-slate-600">
-                Current winner:{" "}
+                On screen:{" "}
                 <strong>
-                  {displayNameWithLast4(
-                    latestWinner.participant_name,
-                    latestWinner.phone_last4,
-                  )}
+                  {postedWinners
+                    .map((winner) =>
+                      displayNameWithLast4(
+                        winner.participant_name,
+                        winner.phone_last4,
+                      ),
+                    )
+                    .join(" · ")}
                 </strong>
+              </p>
+            ) : null}
+
+            {pendingWinners.length > 0 ? (
+              <p className="text-xs text-slate-500">
+                These names stay on admin only until you post them to the projector.
               </p>
             ) : null}
           </div>

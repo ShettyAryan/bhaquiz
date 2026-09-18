@@ -23,7 +23,7 @@ export function EventHeader() {
             className="h-full w-full origin-center object-contain scale-[1.68]"
           />
         </div>
-        <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-brand uppercase sm:text-[0.8rem]">
+        <p className="px-2 text-[0.62rem] font-semibold tracking-[0.12em] text-brand uppercase sm:text-[0.78rem] sm:tracking-[0.14em]">
           {QUIZ_NAME}
         </p>
       </div>
@@ -46,7 +46,7 @@ export function EventFooter() {
           quality={100}
           className="mt-px h-[clamp(1.15rem,3.1vh,1.85rem)] w-auto max-w-[min(100%,20rem)] object-contain"
         />
-        <div className="mt-0.5 flex w-full max-w-3xl items-center justify-center gap-2 sm:gap-4">
+        <div className="mt-0.5 flex w-full max-w-4xl items-center justify-center gap-2 sm:gap-5">
           {MED_LOGOS.map((logo) => (
             <Image
               key={logo.src}
@@ -55,7 +55,7 @@ export function EventFooter() {
               width={logo.width}
               height={logo.height}
               quality={100}
-              className="h-[clamp(1.35rem,3.6vh,2.15rem)] w-auto max-w-[31%] object-contain"
+              className="h-[clamp(1.85rem,5.2vh,3.1rem)] w-auto max-w-[32%] object-contain"
             />
           ))}
         </div>

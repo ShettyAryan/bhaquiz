@@ -39,12 +39,12 @@ export function ScreenClient({ sessionId }: { sessionId: string }) {
 
   const question = state?.question ?? null;
   const isOpen = Boolean(question?.is_open);
+  const liveWinners = state?.winners ?? [];
   const showWinner = Boolean(
-    state?.winner &&
+    liveWinners.length &&
       question &&
       !question.is_open &&
-      question.opened_at &&
-      new Date(state.winner.picked_at) >= new Date(question.opened_at),
+      question.opened_at,
   );
 
   const countLabel = useMemo(() => {
@@ -78,8 +78,8 @@ export function ScreenClient({ sessionId }: { sessionId: string }) {
         <p className="m-auto text-xl text-slate-500">Connecting to the live session…</p>
       ) : null}
 
-      {showWinner && state?.winner ? (
-        <WinnerReveal name={state.winner.name} phoneLast4={state.winner.phone_last4} />
+      {showWinner ? (
+        <WinnerReveal winners={liveWinners} />
       ) : question && isOpen ? (
         <OpenQuestion
           text={question.question_text}
@@ -189,24 +189,43 @@ function WaitingScreen() {
   );
 }
 
-function WinnerReveal({ name, phoneLast4 }: { name: string; phoneLast4: string }) {
+function WinnerReveal({
+  winners,
+}: {
+  winners: Array<{ name: string; phone_last4: string }>;
+}) {
   return (
-    <section className="relative m-auto px-6 text-center">
+    <section className="relative m-auto w-full max-w-5xl px-6 text-center">
       <span className="sparkle absolute top-0 left-8 text-3xl text-brand">✦</span>
       <span className="sparkle absolute top-6 right-10 text-2xl text-brand [animation-delay:400ms]">
         ✦
       </span>
       <p className="text-sm font-semibold tracking-[0.2em] text-brand uppercase">
-        Lucky draw winner
+        {winners.length === 1 ? "Lucky draw winner" : "Lucky draw winners"}
       </p>
-      <h3 className="animate-winner font-display mt-3 text-[clamp(2.5rem,10vh,6rem)] leading-none text-slate-900">
-        {name}
-      </h3>
-      {phoneLast4 ? (
-        <p className="mt-3 text-lg font-semibold text-slate-600 sm:text-xl">
-          Mobile ending {phoneLast4}
-        </p>
-      ) : null}
+      <div
+        className={`mt-4 grid gap-6 ${
+          winners.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"
+        }`}
+      >
+        {winners.map((winner, index) => (
+          <div key={`${winner.name}-${index}`}>
+            {winners.length > 1 ? (
+              <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                Winner {index + 1}
+              </p>
+            ) : null}
+            <h3 className="animate-winner font-display mt-2 text-[clamp(2rem,8vh,5rem)] leading-none text-slate-900">
+              {winner.name}
+            </h3>
+            {winner.phone_last4 ? (
+              <p className="mt-3 text-lg font-semibold text-slate-600 sm:text-xl">
+                Mobile ending {winner.phone_last4}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

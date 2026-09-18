@@ -37,11 +37,17 @@ export type Winner = {
   picked_at: string;
 };
 
+export type PublicWinner = {
+  name: string;
+  phone_last4: string;
+  picked_at: string;
+};
+
 export type PublicSessionState = {
   session: Pick<Session, "id" | "session_number" | "title">;
   question: PublicQuestion | null;
   answerCount: number;
-  winner: { name: string; phone_last4: string; picked_at: string } | null;
+  winners: PublicWinner[];
 };
 
 export type AdminQuestion = Question & {

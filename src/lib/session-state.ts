@@ -4,13 +4,14 @@ import {
   asQuestion,
   toPublicQuestion,
   type PublicSessionState,
+  type PublicWinner,
 } from "@/lib/types";
 
 type WinnerJoin = {
   picked_at: string;
   answers:
-    | { participant_name: string; phone: string | null }
-    | { participant_name: string; phone: string | null }[]
+    | { participant_name: string; phone: string | null; question_id: string }
+    | { participant_name: string; phone: string | null; question_id: string }[]
     | null;
 };
 
@@ -55,20 +56,36 @@ export async function getPublicSessionState(
     answerCount = count ?? 0;
   }
 
-  const { data: winnerRow, error: winnerError } = await admin
+  const { data: winnerRows, error: winnerError } = await admin
     .from("winners")
-    .select("picked_at, answers(participant_name, phone)")
+    .select("picked_at, answers(participant_name, phone, question_id)")
     .eq("session_id", sessionId)
     .order("picked_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
   if (winnerError) throw winnerError;
 
-  const joined = winnerRow as WinnerJoin | null;
-  const answerJoin = Array.isArray(joined?.answers)
-    ? joined.answers[0]
-    : joined?.answers;
+  const winners: PublicWinner[] = [];
+  if (latestQuestion && !latestQuestion.is_open) {
+    const openedAt = latestQuestion.opened_at
+      ? new Date(latestQuestion.opened_at).getTime()
+      : 0;
+
+    for (const row of (winnerRows ?? []) as WinnerJoin[]) {
+      const answerJoin = Array.isArray(row.answers) ? row.answers[0] : row.answers;
+      if (!answerJoin?.participant_name) continue;
+      if (answerJoin.question_id !== latestQuestion.id) continue;
+      if (openedAt && new Date(row.picked_at).getTime() < openedAt) continue;
+      winners.push({
+        name: answerJoin.participant_name,
+        phone_last4: phoneLast4(answerJoin.phone),
+        picked_at: row.picked_at,
+      });
+      if (winners.length >= 2) break;
+    }
+  }
+
+  winners.reverse();
 
   return {
     session: {
@@ -78,13 +95,7 @@ export async function getPublicSessionState(
     },
     question: latestQuestion ? toPublicQuestion(latestQuestion) : null,
     answerCount,
-    winner: answerJoin?.participant_name
-      ? {
-          name: answerJoin.participant_name,
-          phone_last4: phoneLast4(answerJoin.phone),
-          picked_at: joined!.picked_at,
-        }
-      : null,
+    winners,
   };
 }
 
