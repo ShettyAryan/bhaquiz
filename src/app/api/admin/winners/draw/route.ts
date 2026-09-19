@@ -77,6 +77,7 @@ export async function POST(request: Request) {
       winners: picked.map((row) => ({
         answer_id: row.id,
         name: row.participant_name,
+        phone: row.phone ?? "",
         phone_last4: phoneLast4(row.phone),
       })),
     });

@@ -28,3 +28,11 @@ export function displayNameWithLast4(
   const tail = phoneLast4(phone);
   return tail ? `${name} · ${tail}` : name;
 }
+
+export function displayNameWithPhone(
+  name: string,
+  phone: string | null | undefined,
+) {
+  const digits = normalizePhone(phone ?? "");
+  return digits ? `${name} · ${digits}` : name;
+}

@@ -97,6 +97,7 @@ export async function POST(request: Request) {
       return {
         id: row.id,
         name: answer?.participant_name ?? "",
+        phone: answer?.phone ?? "",
         phone_last4: phoneLast4(answer?.phone),
         answer_id: row.answer_id,
         picked_at: row.picked_at,

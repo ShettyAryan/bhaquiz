@@ -31,6 +31,7 @@ export async function GET(
       .map((row) => ({
         id: row.id,
         participant_name: row.participant_name,
+        phone: row.phone ?? "",
         phone_last4: phoneLast4(row.phone),
         submitted_at: row.submitted_at,
       }));

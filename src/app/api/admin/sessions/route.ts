@@ -86,6 +86,7 @@ export async function GET() {
         id: row.id,
         picked_at: row.picked_at,
         participant_name: answer?.participant_name ?? "Unknown",
+        phone: answer?.phone ?? "",
         phone_last4: phoneLast4(answer?.phone),
         question_id: answer?.question_id ?? "",
       });

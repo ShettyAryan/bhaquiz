@@ -61,6 +61,7 @@ export type AdminSession = Session & {
     id: string;
     picked_at: string;
     participant_name: string;
+    phone: string;
     phone_last4: string;
     question_id: string;
   }>;
@@ -69,6 +70,7 @@ export type AdminSession = Session & {
 export type CorrectAnswerRow = {
   id: string;
   participant_name: string;
+  phone: string;
   phone_last4: string;
   submitted_at: string;
 };

@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RetryBanner } from "@/components/retry-banner";
 import { readErrorMessage } from "@/lib/api";
-import { displayNameWithLast4 } from "@/lib/phone";
+import { displayNameWithPhone } from "@/lib/phone";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { AdminQuestion, AdminSession, CorrectAnswerRow } from "@/lib/types";
 
@@ -284,7 +284,7 @@ function SessionCard({
           <ul className="mt-2 space-y-1 text-sm text-slate-600">
             {session.winners.map((winner) => (
               <li key={winner.id}>
-                {displayNameWithLast4(winner.participant_name, winner.phone_last4)} ·{" "}
+                {displayNameWithPhone(winner.participant_name, winner.phone)} ·{" "}
                 {new Date(winner.picked_at).toLocaleString()}
               </li>
             ))}
@@ -326,7 +326,7 @@ function QuestionPanel({
   const [drawing, setDrawing] = useState(false);
   const [shuffleNames, setShuffleNames] = useState<string[]>([]);
   const [pendingWinners, setPendingWinners] = useState<
-    Array<{ answer_id: string; name: string; phone_last4: string }>
+    Array<{ answer_id: string; name: string; phone: string; phone_last4: string }>
   >([]);
   const [posting, setPosting] = useState(false);
 
@@ -412,7 +412,7 @@ function QuestionPanel({
       throw new Error(await readErrorMessage(response, "Could not draw winners."));
     }
     const payload = (await response.json()) as {
-      winners: Array<{ answer_id: string; name: string; phone_last4: string }>;
+      winners: Array<{ answer_id: string; name: string; phone: string; phone_last4: string }>;
     };
     return payload.winners;
   }
@@ -420,7 +420,7 @@ function QuestionPanel({
   async function drawWinners() {
     const names =
       results?.correct.map((row) =>
-        displayNameWithLast4(row.participant_name, row.phone_last4),
+        displayNameWithPhone(row.participant_name, row.phone),
       ) ?? [];
     if (!names.length) {
       setError("No correct answers to draw from.");
@@ -430,7 +430,7 @@ function QuestionPanel({
     setDrawing(true);
     setError(null);
 
-    let drawn: Array<{ answer_id: string; name: string; phone_last4: string }> = [];
+    let drawn: Array<{ answer_id: string; name: string; phone: string; phone_last4: string }> = [];
     try {
       drawn = await drawFromServer(Math.min(2, names.length));
     } catch (caught) {
@@ -451,7 +451,7 @@ function QuestionPanel({
       if (Date.now() - started > duration) {
         window.clearInterval(tick);
         setShuffleNames(
-          drawn.map((row) => displayNameWithLast4(row.name, row.phone_last4)),
+          drawn.map((row) => displayNameWithPhone(row.name, row.phone)),
         );
         setPendingWinners(drawn);
         setDrawing(false);
@@ -485,6 +485,7 @@ function QuestionPanel({
           ? {
               answer_id: row.id,
               name: row.participant_name,
+              phone: row.phone,
               phone_last4: row.phone_last4,
             }
           : item,
@@ -628,7 +629,7 @@ function QuestionPanel({
               <ul className="mt-2 space-y-1 text-sm">
                 {results.correct.map((row) => (
                   <li key={row.id}>
-                    {displayNameWithLast4(row.participant_name, row.phone_last4)}
+                    {displayNameWithPhone(row.participant_name, row.phone)}
                     <span className="ml-2 text-slate-500">
                       {new Date(row.submitted_at).toLocaleTimeString()}
                     </span>
@@ -705,7 +706,7 @@ function QuestionPanel({
                               slot !== index && other.answer_id === row.id,
                           )}
                         >
-                          {displayNameWithLast4(row.participant_name, row.phone_last4)}
+                          {displayNameWithPhone(row.participant_name, row.phone)}
                         </option>
                       ))}
                     </select>
@@ -728,9 +729,9 @@ function QuestionPanel({
                 <strong>
                   {postedWinners
                     .map((winner) =>
-                      displayNameWithLast4(
+                      displayNameWithPhone(
                         winner.participant_name,
-                        winner.phone_last4,
+                        winner.phone,
                       ),
                     )
                     .join(" · ")}
